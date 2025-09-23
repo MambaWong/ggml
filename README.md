@@ -32,6 +32,9 @@ pip install -r requirements.txt
 mkdir build && cd build
 cmake ..
 cmake --build . --config Release -j 8
+# or
+cmake -B build -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel $(nproc)
 ```
 
 ## GPT inference (example)
