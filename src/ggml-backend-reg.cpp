@@ -188,6 +188,7 @@ struct ggml_backend_registry {
             return;
         }
 
+        // 去重
         for (auto & entry : backends) {
             if (entry.reg == reg) {
                 return;
@@ -495,7 +496,7 @@ static ggml_backend_reg_t ggml_backend_load_best(const char * name, bool silent,
         search_paths.push_back(fs::u8path(user_search_path));
     }
 
-    int best_score = 0;
+    int best_score = 0;     // 主要是针对 CPU 不同的性能特性。具体可以参考 path/to/ggml/path/src/CMakeLists.txt:371
     fs::path best_path;
     std::error_code ec;
 
@@ -514,7 +515,7 @@ static ggml_backend_reg_t ggml_backend_load_best(const char * name, bool silent,
                 auto filename = entry.path().filename();
                 auto ext = entry.path().extension();
                 if (filename.native().find(file_prefix) == 0 && ext == file_extension) {
-                    dl_handle_ptr handle { dl_load_library(entry) };
+                    dl_handle_ptr handle { dl_load_library(entry) };    // 加载动态库
                     if (!handle && !silent) {
                         GGML_LOG_ERROR("%s: failed to load %s: %s\n", __func__, path_str(entry.path()).c_str(), dl_error());
                     }
@@ -546,7 +547,7 @@ static ggml_backend_reg_t ggml_backend_load_best(const char * name, bool silent,
             fs::path filename = backend_filename_prefix().native() + name_path.native() + backend_filename_extension().native();
             fs::path path = search_path / filename;
             if (std::error_code ec; fs::exists(path, ec)) {
-                return get_reg().load_backend(path, silent);
+                return get_reg().load_backend(path, silent);    // 直接加载第一个找到的非 CPU 后端
             } else {
                 if (ec) {
                     GGML_LOG_DEBUG("%s: posix_stat(%s) failure, error-message: %s\n", __func__, path_str(path).c_str(), ec.message().c_str());
@@ -559,6 +560,7 @@ static ggml_backend_reg_t ggml_backend_load_best(const char * name, bool silent,
     return get_reg().load_backend(best_path, silent);
 }
 
+// 加载所有后端
 void ggml_backend_load_all() {
     ggml_backend_load_all_from_path(nullptr);
 }

@@ -223,6 +223,7 @@ extern "C" {
         void * (*get_proc_address)(ggml_backend_reg_t reg, const char * name);
     };
 
+    // backend registration
     struct ggml_backend_reg {
         int api_version; // initialize to GGML_BACKEND_API_VERSION
         struct ggml_backend_reg_i iface;

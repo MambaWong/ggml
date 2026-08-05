@@ -1740,7 +1740,7 @@ static struct ggml_object * ggml_new_object(struct ggml_context * ctx, enum ggml
     }
 
     *obj_new = (struct ggml_object) {
-        .offs = cur_end + GGML_OBJECT_SIZE,
+        .offs = cur_end + GGML_OBJECT_SIZE,    // 便于直接获取 tensor
         .size = size_needed,
         .next = NULL,
         .type = type,

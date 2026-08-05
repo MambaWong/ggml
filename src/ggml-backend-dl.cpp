@@ -31,11 +31,14 @@ const char * dl_error() {
 
 #else
 
+// dynamic library open
 dl_handle * dl_load_library(const fs::path & path) {
     dl_handle * handle = dlopen(path.string().c_str(), RTLD_NOW | RTLD_LOCAL);
     return handle;
 }
 
+// dynamic library symbol
+// 从已经加载的动态库（.so / .dylib）中，根据符号名称找到该符号在内存中的地址。
 void * dl_get_sym(dl_handle * handle, const char * name) {
     return dlsym(handle, name);
 }

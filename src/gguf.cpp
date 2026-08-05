@@ -15,8 +15,8 @@
 #include <string>
 #include <vector>
 
-#define GGUF_MAX_STRING_LENGTH  (1024*1024*1024)
-#define GGUF_MAX_ARRAY_ELEMENTS (1024*1024*1024)
+#define GGUF_MAX_STRING_LENGTH  (1024*1024*1024)    // 1 GB
+#define GGUF_MAX_ARRAY_ELEMENTS (1024*1024*1024)    // 1 GB
 
 #ifdef _WIN32
 #    define gguf_ftell _ftelli64
@@ -134,6 +134,7 @@ struct gguf_kv {
     bool is_array;
     enum gguf_type type;
 
+    // data 用于存储非 string 数据，data 只保证所需的字节数，不关注数据类型
     std::vector<int8_t>      data;
     std::vector<std::string> data_string;
 
@@ -176,6 +177,7 @@ struct gguf_kv {
         return type;
     }
 
+    // number element
     size_t get_ne() const {
         if (type == GGUF_TYPE_STRING) {
             const size_t ne = data_string.size();
@@ -189,6 +191,7 @@ struct gguf_kv {
         return ne;
     }
 
+    // value
     template <typename T>
     const T & get_val(const size_t i = 0) const {
         GGML_ASSERT(type_to_gguf_type<T>::value == type);
@@ -244,22 +247,28 @@ struct gguf_reader {
 
     // helper for remaining bytes in a file
     static uint64_t file_remain(FILE * file) {
+        // 获取当前位置
         const int64_t cur = gguf_ftell(file);
         if (cur < 0) {
             return 0;
         }
+        // 跳转到文件末尾
         if (gguf_fseek(file, 0, SEEK_END) != 0) {
+            // 失败时恢复位置
             gguf_fseek(file, cur, SEEK_SET);
 
             return 0;
         }
+        // 获取当前位置
         const int64_t end = gguf_ftell(file);
         if (end < 0) {
             gguf_fseek(file, cur, SEEK_SET);
 
             return 0;
         }
+        // 恢复原始位置
         gguf_fseek(file, cur, SEEK_SET);
+        // 返回剩余字节数
         return static_cast<uint64_t>(end - cur);
     }
 
@@ -651,6 +660,7 @@ static struct gguf_context * gguf_init_from_reader(const struct gguf_reader & gr
             ggml_set_name(&info.t, name.c_str());
 
             // make sure there are no duplicate tensor names
+            // 校验是否有重名的 tensor
             for (int64_t j = 0; ok && j < i; ++j) {
                 if (strcmp(info.t.name, ctx->info[j].t.name) == 0) {
                     GGML_LOG_ERROR("%s: duplicate tensor name '%s' for tensors %" PRIi64 " and %" PRIi64 "\n", __func__, info.t.name, j, i);
@@ -762,6 +772,7 @@ static struct gguf_context * gguf_init_from_reader(const struct gguf_reader & gr
     GGML_ASSERT(int64_t(ctx->info.size()) == n_tensors);
 
     // we require the data section to be aligned, so take into account any padding
+    // data section 必须对齐
     if (n_tensors > 0 && !gr.seek(GGML_PAD(gr.tell(), ctx->alignment))) {
         GGML_LOG_ERROR("%s: failed to seek to beginning of data section\n", __func__);
         gguf_free(ctx);
@@ -769,6 +780,7 @@ static struct gguf_context * gguf_init_from_reader(const struct gguf_reader & gr
     }
 
     // store the current file offset - this is where the data section starts
+    // data section 的起始位置
     ctx->offset = gr.tell();
 
     // compute the total size of the data section, taking into account the alignment
@@ -783,6 +795,7 @@ static struct gguf_context * gguf_init_from_reader(const struct gguf_reader & gr
                 gguf_free(ctx);
                 return nullptr;
             }
+            // 长度必须按要求对齐
             size_t padded_size = GGML_PAD(ggml_nbytes(&ti.t), ctx->alignment);
             if (SIZE_MAX - ctx->size < padded_size) {
                 GGML_LOG_ERROR("%s: tensor '%s' size overflow, cannot accumulate size %zu + %zu\n",
@@ -813,6 +826,7 @@ static struct gguf_context * gguf_init_from_reader(const struct gguf_reader & gr
 
             mem_size = overhead;
         } else {
+            // 多的一个是用来申请装数据的
             if ((n_tensors + 1) != 0 && SIZE_MAX / (n_tensors + 1) < ggml_tensor_overhead()) {
                 GGML_LOG_ERROR("%s: memory size overflow while allocating ggml context\n", __func__);
                 gguf_free(ctx);
@@ -831,7 +845,7 @@ static struct gguf_context * gguf_init_from_reader(const struct gguf_reader & gr
         }
 
         struct ggml_init_params pdata = {
-            /*mem_size   =*/ mem_size,
+            /*mem_size   =*/ mem_size,    // 内部申请的总字节数，内部可能会做对齐
             /*mem_buffer =*/ nullptr,
             /*no_alloc   =*/ params.no_alloc,
         };
@@ -873,6 +887,7 @@ static struct gguf_context * gguf_init_from_reader(const struct gguf_reader & gr
         ggml_set_no_alloc(ctx_data, true);
 
         // create the tensors
+        // 对 ggml_context 中的 ggml_object 链表进行填充
         for (size_t i = 0; i < ctx->info.size(); ++i) {
             const struct gguf_tensor_info & info = ctx->info[i];
 
@@ -943,6 +958,7 @@ struct gguf_context * gguf_init_from_file_ptr(FILE * file, struct gguf_init_para
         return nullptr;
     }
 
+    // 获取当前偏移量
     const int64_t cur = gguf_ftell(file);
     if (cur < 0) {
         return nullptr;

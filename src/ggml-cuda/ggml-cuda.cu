@@ -4760,6 +4760,9 @@ static bool ggml_backend_cuda_get_available_uma_memory(long * available_memory_k
 static void ggml_backend_cuda_device_get_memory(ggml_backend_dev_t dev, size_t * free, size_t * total) {
     ggml_backend_cuda_device_context * ctx = (ggml_backend_cuda_device_context *)dev->context;
     ggml_cuda_set_device(ctx->device);
+    // 查询 NVIDIA GPU 显存（VRAM）使用情况
+    // 获取显存总量
+    // 获取剩余显存
     cudaError_t err = cudaMemGetInfo(free, total);
     if (err != cudaSuccess) {
         (void)cudaGetLastError();

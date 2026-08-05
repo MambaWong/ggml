@@ -76,7 +76,7 @@
 #define UNUSED GGML_UNUSED
 #define SWAP(x, y, T) do { T SWAP = x; (x) = y; (y) = SWAP; } while (0)
 
-// precomputed f32 table for f16 (256 KB) (simd-mappings.h)
+// precomputed f32 table for f16 (256 KB) (simd-mappings.h)      256KB = 4 * (1<<16) Byte = 4 * 64 KB = 256KB
 float ggml_table_f32_f16[1 << 16];
 
 // precomputed f32 table for e8m0 half (1 KB) (simd-mappings.h)
@@ -3833,7 +3833,7 @@ void ggml_cpu_init(void) {
     static bool is_first_call = true;
 
     if (is_first_call) {
-        // initialize GELU, Quick GELU, SILU and EXP F32 tables
+        // initialize GELU, Quick GELU, SILU and EXP F32 tables    生成查找表
         {
             const uint64_t t_start = ggml_time_us(); UNUSED(t_start);
 

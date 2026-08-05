@@ -370,9 +370,9 @@ static void ggml_backend_cpu_device_get_memory(ggml_backend_dev_t dev, size_t * 
     *total = status.ullTotalPhys;
     *free = status.ullAvailPhys;
 #else
-    long pages = sysconf(_SC_PHYS_PAGES);
-    long page_size = sysconf(_SC_PAGE_SIZE);
-    *total = pages * page_size;
+    long pages = sysconf(_SC_PHYS_PAGES);    // 获取物理内存页数
+    long page_size = sysconf(_SC_PAGE_SIZE);    // 获取每页大小（字节）
+    *total = pages * page_size;    // 总内存 = 页数 × 页大小
 
     // "free" system memory is ill-defined, for practical purposes assume that all of it is free:
     *free = *total;
